@@ -1,0 +1,106 @@
+create or replace package blob_pkg
+is
+procedure blob_to_file (p_blob in  blob, p_dir in varchar2 default 'WORK', p_filename in varchar2);
+
+function  file_to_blob (p_file_name in varchar2, p_dir in varchar2 default 'WORK') return blob;
+
+procedure delete_file  (p_file_name in varchar2, p_dir in varchar2 default 'WORK');
+
+function  file_exists  (p_file_name in varchar2, p_dir in varchar2 default 'WORK') return boolean;
+end blob_pkg;
+/
+
+
+create or replace package body blob_pkg
+is
+procedure blob_to_file (p_blob in  blob, p_dir in varchar2 default 'WORK', p_filename in varchar2)
+is
+  pragma autonomous_transaction;
+  l_file      utl_file.file_type;
+  l_buffer    raw (32767);
+  l_amount    binary_integer := 32767;
+  l_pos       integer := 1;
+  l_blob_len  integer;
+  l_file_name varchar2(50) := replace (p_filename, ' ', '_');
+begin
+  l_blob_len := dbms_lob.getlength (p_blob);
+
+  -- Open the destination file.
+  l_file := utl_file.fopen (p_dir, l_file_name ,'wb', 32767);
+
+  -- Read chunks of the blob and write them to the file until complete.
+  while l_pos <= l_blob_len
+  loop
+    dbms_lob.read (p_blob, l_amount, l_pos, l_buffer);
+    utl_file.put_raw (l_file, l_buffer, true);
+    l_pos := l_pos + l_amount;
+  end loop;
+  utl_file.fclose(l_file);
+
+exception when others
+then
+  if utl_file.is_open (l_file) then utl_file.fclose (l_file); end if;
+  util.show_error ('Error in function blob_to_file', sqlerrm);
+end blob_to_file;
+
+/*******************************************************************************/
+
+function file_to_blob (p_file_name in varchar2, p_dir in varchar2 default 'WORK') return blob
+is
+ l_src_file bfile;
+ l_dst_file blob;
+ l_dest_offset integer := 1;
+ l_src_offset  integer := 1;
+begin
+  l_src_file := bfilename (p_dir, p_file_name);
+  dbms_lob.fileopen (l_src_file, dbms_lob.file_readonly);
+  dbms_lob.createtemporary (l_dst_file, FALSE);
+  if dbms_lob.getlength (l_src_file) > 0
+  then
+    dbms_lob.loadblobfromfile (
+      dest_lob    => l_dst_file,
+      src_bfile   => l_src_file,
+      amount      => dbms_lob.lobmaxsize,
+      dest_offset => l_dest_offset,
+      src_offset  => l_src_offset);
+  end if;
+  dbms_lob.fileclose (l_src_file);
+  return l_dst_file;
+
+exception when others
+then
+  util.show_error ('Error in function file_to_blob', sqlerrm);
+end file_to_blob;
+
+/*******************************************************************************/
+
+procedure delete_file (p_file_name in varchar2, p_dir in varchar2 default 'WORK')
+is
+begin
+  utl_file.fremove (p_dir, p_file_name);
+
+exception when others
+then
+  util.show_error ('Error in function load_thumbnail for ' || p_file_name, sqlerrm);
+end delete_file;
+
+/*******************************************************************************/
+
+function  file_exists  (p_file_name in varchar2, p_dir in varchar2 default 'WORK') return boolean
+is
+  l_exists boolean;
+  l_len    number;
+  l_size   number;
+begin
+  utl_file.fgetattr (upper (p_dir), p_file_name, l_exists, l_len, l_size); 
+  return l_exists;
+  
+exception when others
+then
+  util.show_error ('Error in function file_exists for ' || p_file_name || ' and directory:  ' || p_dir, sqlerrm);
+  return null;
+end file_exists;
+
+
+end blob_pkg;
+/

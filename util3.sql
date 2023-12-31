@@ -8,7 +8,10 @@ DOC
   @C:\Users\Theo\OneDrive\Theo\Project\Generic\util3.sql
   procedure print_string (p_string in varchar2)
   This procedure is able to print text fields up to 32K bytes
-  
+
+#
+
+
  create table error_log
 ( id             integer,
   title          varchar2(200),
@@ -32,12 +35,12 @@ end error_log_briu;
 /
 
 
-#
 set serveroutput on size 1000000
 
 create or replace package util
 as
 
+-- To be used in ARIU triggers
 type rowid_array_ty is table of rowid index by binary_integer;
 pkg_rowid_aray rowid_array_ty;
 
@@ -116,42 +119,46 @@ is
   pragma autonomous_transaction;
   l_depth pls_integer;
 begin
-l_depth := utl_call_stack.dynamic_depth;
-dbms_output.put_line (chr(10) || '***** ' || p_message || '. ' || p_error || '  *****' || chr(10));
-dbms_output.put_line ('***** Call Stack Start *****');
-dbms_output.put_line ('Depth     Lexical   Line      Owner     Edition   Name');
-dbms_output.put_line ('.         Depth     Number');
-dbms_output.put_line ('--------- --------- --------- --------- --------- --------------------');
+  l_depth := utl_call_stack.dynamic_depth;
+  dbms_output.put_line (chr(10) || '***** ' || p_message || '. ' || p_error || '  *****' || chr(10));
+  dbms_output.put_line ('***** Call Stack Start *****');
+  dbms_output.put_line ('Depth     Lexical   Line      Owner     Edition   Name');
+  dbms_output.put_line ('.         Depth     Number');
+  dbms_output.put_line ('--------- --------- --------- --------- --------- --------------------');
 
-for i in 1 .. l_depth
-loop
-  dbms_output.put_line( rpad(i, 10) || rpad (utl_call_stack.lexical_depth (i), 10) || rpad (to_char (utl_call_stack.unit_line (i),'9990'), 10) ||
-                        rpad (nvl (utl_call_stack.owner (i),' '), 10) || rpad (nvl (utl_call_stack.current_edition (i),' '), 10) ||
-                        utl_call_stack.concatenate_subprogram (utl_call_stack.subprogram (i)));
-end loop;
-dbms_output.put_line ('Error_Backtrace: ' || trim (dbms_utility.format_error_backtrace ()));
-dbms_output.put_line ('***** Call Stack End *****' || chr(10));
+  for i in 1 .. l_depth
+  loop
+    dbms_output.put_line( rpad(i, 10) || rpad (utl_call_stack.lexical_depth (i), 10) || rpad (to_char (utl_call_stack.unit_line (i),'9990'), 10) ||
+                          rpad (nvl (utl_call_stack.owner (i),' '), 10) || rpad (nvl (utl_call_stack.current_edition (i),' '), 10) ||
+                          utl_call_stack.concatenate_subprogram (utl_call_stack.subprogram (i)));
+  end loop;
+  dbms_output.put_line ('Error_Backtrace: ' || trim (dbms_utility.format_error_backtrace ()));
+  dbms_output.put_line ('***** Call Stack End *****' || chr(10));
 
-l_depth := utl_call_stack.error_depth;
-dbms_output.put_line ('***** Error Stack Start *****');
-dbms_output.put_line ('Depth     Error     Error');
-dbms_output.put_line ('.         Code      Message');
-dbms_output.put_line ('--------- --------- --------------------');
+  l_depth := utl_call_stack.error_depth;  
+  dbms_output.put_line ('***** Error Stack Start *****');
+  dbms_output.put_line ('Depth     Error     Error');
+  dbms_output.put_line ('.         Code      Message');
+  dbms_output.put_line ('--------- --------- --------------------');
 
-for i in 1 .. l_depth
-loop
-  dbms_output.put_line ( rpad(i, 10) || rpad('ORA-' || lpad (utl_call_stack.error_number (i), 5, '0'), 10) || utl_call_stack.error_msg (i));
-end loop; 
-dbms_output.put_line ('***** Error Stack End *****' || chr(10));
+  for i in 1 .. l_depth
+  loop
+    dbms_output.put_line ( rpad(i, 10) || rpad('ORA-' || lpad (utl_call_stack.error_number (i), 5, '0'), 10) || utl_call_stack.error_msg (i));
+  end loop; 
+  dbms_output.put_line ('***** Error Stack End *****' || chr(10));
 
-if p_save
-then
-  insert into error_log (title, info, created_on, created_by, errorstack, errorbacktrace)
-    values (p_message, p_message, sysdate, user, dbms_utility.format_error_stack (), dbms_utility.format_error_backtrace ());
-  commit;
-end if;
-if p_raise then raise_application_error (-20005, 'Error raised from routine util.show_error.'); end if;
+  if p_save
+  then
+    insert into error_log (title, info, created_on, created_by, errorstack, errorbacktrace)
+      values (p_message, p_message, sysdate, user, dbms_utility.format_error_stack (), dbms_utility.format_error_backtrace ());
+    commit;
+  end if;
+  if p_raise then raise_application_error (-20005, 'Error raised from routine util.show_error.'); end if;
 end show_error;
 
 end util;
 /
+
+
+grant execute on util to public;
+create public sysnonym util for <user>.util;

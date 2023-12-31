@@ -1,0 +1,4 @@
+.atom-build-oracle.json
+build/node_modules
+temp
+backup/
