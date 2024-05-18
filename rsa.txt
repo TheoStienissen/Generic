@@ -1,0 +1,26 @@
+https://www.youtube.com/watch?v=UKg6Ae-AbLc
+Wieners RSA attack
+
+1. phi(N) = (p-1)(q-1) = N - p - q +1
+2. Choose 2 < e < phi (N) ^ gcd (e,phi(N)) = 1 (e = encoding)
+3. Euclid: ed - k * phi (N) = 1 (k E 1N ^ d = decrypt. 2 < d < phi (N))
+
+M = m ** e (mod N)
+M ** d = m ** ed = m ** (1 + k * phi (N)) = m mod N
+
+Suppose:
+1. N = p * q
+2. p < q < 2p
+3. e < phi (N)
+4. d < 1/3 * power(N, 0.25)
+
+ed - k * phi (N)   Divide / d * phi (N) =>
+| e/phi (N) - k / d| = 1 / (phi(N) * d) => e / phi (N) ~ k / d
+
+Approx: phi (N)
+p + q - 1 < p + 2p = 3p < 3 * sqrt (N) because p < q
+|N - phi (N)| = p + q - 1 < 3 * sqrt (N)
+| e/phi (N) - k / d| ~ | e / N - k / d|  because N and phi (N) are large
+ | e / N - k / d| = |(ed -kN)/Nd| < k /(N*d) * |N- phi (N)| < 3 * k * sqrt (N) / (N * d) = 3k / (d *sqrt(N))
+
+k * phi (N) = ed - 1 < ed < d * phi (N) => k < d < 1/3 * power(N, 0.25) => 

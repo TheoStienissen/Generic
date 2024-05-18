@@ -41,10 +41,10 @@ create or replace package util
 as
 
 -- To be used in ARIU triggers
-type rowid_array_ty is table of rowid index by binary_integer;
+type rowid_array_ty is table of rowid index by pls_integer;
 pkg_rowid_aray rowid_array_ty;
 
-type int_array_ty is table of integer index by binary_integer;
+type int_array_ty is table of integer index by pls_integer;
 pkg_int_array int_array_ty;
 
 procedure log_error (p_title_in error_log.title%type, p_info_in error_log.info%type, p_raise in boolean default false);
